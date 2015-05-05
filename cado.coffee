@@ -1,113 +1,38 @@
+{cond, pair, escape} = require './utils'
+inflection = require 'inflection'
 mysql = require 'mysql'
 _ = require 'lodash'
 Q = require 'q'
 
-module.exports = class Cado
-  log: null
-  connection: null
-
-  constructor: (@options) ->
-    @log = @options?.log or ->
+class Model
+  constructor: (document) ->
+    _.extend @, document
 
     _.each ['count', 'min', 'max', 'avg', 'sum'], (func) =>
-      @[func] = (table, cond, field) ->
-        @groupBy func, table, cond, field
+      @[func] = (cond, field) ->
+        @groupBy func, cond, field
 
-  connect: (options = @options) ->
-    Q.Promise (resolve, reject) =>
-      if @connection
-        resolve @
-      else
-        pool = mysql.createPool options
-        pool.getConnection (err, connection) =>
-          if err
-            reject err
-          else
-            @connection = connection
-            resolve @
+  @initialize: (options) ->
+    _.extend @, options
 
-  query: (sql) ->
+  @query: (sql) ->
     @log sql
     Q.Promise (resolve, reject) =>
-      @connection.query sql, (err, rows) ->
+      @_connection.query sql, (err, rows) ->
         if err
           reject err
         else
           resolve rows
 
-  end: ->
+  @end: ->
     Q.Promise (resolve, reject) =>
-      @connection.end resolve
+      @_connection.end resolve
 
-  cond: (data, set) ->
-    delimiter = ' AND '
-    if set
-      delimiter = ', '
-    if _.isNumber(data) or _.isString(data)
-      data = id: Number(data)
-
-    return _.map(data, (value, key) =>
-      @pair key, value, null, true, true, set
-    ).join(delimiter)
-
-  pair: (key, value, operator = '=', escapeKey, escapeValue, set) ->
-    unless set
-      if (_.isNaN(value) or _.isNull(value) or _.isUndefined(value)) and (operator is '=')
-        operator = 'IS'
-
-      if _.isArray value
-        operator = 'IN'
-
-      if _.isObject value
-        if not _.isUndefined(value.from) and not _.isUndefined(value.to)
-          operator = 'BETWEEN'
-        unless _.isUndefined value.from
-          operator = '>='
-        unless _.isUndefined value.to
-          operator = '<='
-
-    if escapeKey
-      key = mysql.escapeId String(key)
-
-    if escapeValue
-      value = @escape value, set
-
-    return "#{key} #{operator} #{value}"
-
-  escape: (value, set) ->
-    if _.isNaN(value) or _.isNull(value) or _.isUndefined(value)
-      return 'NULL'
-
-    if _.isNumber value
-      return value
-
-    if _.isBoolean value
-      return Number(value)
-
-    unless set
-      if _.isArray value
-        string = _.map(value, (data) ->
-          @escape(data, set)
-        ).join(', ')
-        return "(#{string})"
-
-      if _.isObject value
-        if not _.isUndefined(value.from) and not _.isUndefined(value.to)
-          return "#{@escape(value.from, set)} AND #{@escape(value.to, set)}"
-
-        unless _.isUndefined value.from
-          return @escape value.from, set
-
-        unless _.isUndefined value.to
-          return @escape value.to, set
-
-    return mysql.escape String(value)
-
-  select: (table, cond, field) ->
+  @find: (cond, field) ->
     unpackRow = _.isNumber(cond) or _.isString(cond)
     if _.isNumber(cond) or _.isString(cond) or _.isArray(cond)
       cond = id: cond
-    cond = @cond cond
+    cond = cond cond
 
     unpackField = (_.isNumber(field) or _.isString(field)) and (field isnt '*') and field
     field = field or '*'
@@ -120,7 +45,7 @@ module.exports = class Cado
       return data
     ).join(', ')
 
-    query = "SELECT #{field} FROM #{mysql.escapeId(table)}"
+    query = "SELECT #{field} FROM #{@_options.table_name}"
 
     if cond
       query += " WHERE #{cond}"
@@ -136,8 +61,8 @@ module.exports = class Cado
     .then (rows) ->
       return unpack rows
 
-  groupBy: (func, table, cond, field) ->
-    cond = @cond cond
+  @groupBy: (func, cond, field) ->
+    cond = cond cond
 
     defaultField = 'id'
     if func is 'count'
@@ -160,7 +85,7 @@ module.exports = class Cado
     if field
       query += ', '
 
-    query += "#{func}(#{lastField}) AS #{func} FROM #{mysql.escapeId(table)}"
+    query += "#{func}(#{lastField}) AS #{func} FROM #{@_options.table_name}"
 
     if cond
       query += " where #{cond}"
@@ -177,23 +102,23 @@ module.exports = class Cado
         return value
       return data
 
-  insert: (table, data) ->
+  @create: (data) ->
     unless data
       data = id: null
 
-    @query "INSERT #{mysql.escapeId(table)} SET #{@cond(data, true)}"
+    @query "INSERT #{@_options.table_name} SET #{cond(data, true)}"
 
-  update: (table, cond, data) ->
+  @update: (cond, data) ->
     if _.isString(cond) or _.isNumber(cond)
       cond = id: cond
-    @query "UPDATE #{mysql.escapeId(table)} SET #{@cond(data, true)} WHERE #{@cond(cond)}"
+    @query "UPDATE #{@_options.table_name} SET #{cond(data, true)} WHERE #{cond(cond)}"
 
-  delete: (table, cond) ->
+  @delete: (cond) ->
     if _.isString(cond) or _.isNumber(cond)
       cond = id: cond
-    @query "DELETE FROM #{mysql.escapeId(table)} WHERE #{@cond(cond)}"
+    @query "DELETE FROM #{@_options.table_name} WHERE #{cond(cond)}"
 
-  save: (table, data, field) ->
+  @save: (data, field) ->
     unless data
       data = id: null
 
@@ -207,10 +132,58 @@ module.exports = class Cado
       if (key is 'id') and (value is false)
         pair = "`#{key}` = last_insert_id(#{key})"
       else
-        pair = @pair key, value, null, true, true, true
+        pair = pair key, value, null, true, true, true
       insert.push pair
 
       if not field or _.contains(field, key)
         update.push(pair)
 
-    @query "INSERT #{mysql.escapeId(table)} SET #{insert.join(', ')} ON DUPLICATE KEY UPDATE #{update.join(', ')}"
+    @query "INSERT #{@_options.table_name} SET #{insert.join(', ')} ON DUPLICATE KEY UPDATE #{update.join(', ')}"
+
+module.exports = class Cado
+  log: null
+  connection: null
+
+  constructor: (@options) ->
+    @models = {}
+    @log = @options?.log or ->
+
+  connect: (options = @options) ->
+    Q.Promise (resolve, reject) =>
+      if @connection
+        resolve @
+      else
+        pool = mysql.createPool options
+        pool.getConnection (err, connection) =>
+          if err
+            reject err
+          else
+            @connection = connection
+            resolve @
+
+  define: (name, schema, options) ->
+    if @models[name]
+      if schema
+        throw new Error "Cado#model: #{name} already exists"
+      else
+        return @models[name]
+
+    options = _.extend(
+      table_name: inflection.pluralize name.toLowerCase()
+      strict_pick: true
+      memoize: true
+    , options)
+
+    class SubModel extends Model
+
+    SubModel.initialize
+      _name: name
+      _cado: @
+      _options: options
+      _connection: @connection
+      log: @log
+
+    if options.memoize
+      @models[name] = SubModel
+
+    return SubModel
