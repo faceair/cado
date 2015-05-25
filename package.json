@@ -1,7 +1,7 @@
 {
   "name": "cado",
-  "version": "1.0.15",
-  "description": "neat db interface for node-mysql",
+  "version": "0.1.0",
+  "description": "Just a copy of sequelize.",
   "main": "cado.coffee",
   "scripts": {
     "test": "./node_modules/.bin/mocha"

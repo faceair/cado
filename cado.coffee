@@ -9,6 +9,9 @@ class Model
     _.extend @, record
 
   @initialize: (options) ->
+    schema = _.defaults options._schema,
+      id:
+        number: true
     @Querier = querier options._table_name, options._schema
     _.extend @, options
 
@@ -17,7 +20,7 @@ class Model
       @pool.getConnection (err, connection) =>
         return reject err if err
 
-        @log "Cado: #{query}"
+        @log "Cado#log: #{query}"
         connection.query query, params, (err, records) ->
           connection.release()
 
@@ -26,19 +29,24 @@ class Model
           resolve records.map (record) ->
             return new Model record
 
-  @find: (condition) ->
+  @findAll: (condition) ->
     @query @Querier condition
 
   @findOne: (condition) ->
-    @query @Querier(condition)
+    @findAll _.extend condition,
+      limit: 1
     .then (records) ->
       return _.first records
+
+  @find: @findOne
 
 module.exports = class Cado
   constructor: (@config) ->
     @models = {}
+    if @config
+      @connect()
 
-  connect: (@config) ->
+  connect: (@config = @config) ->
     unless @pool
       @pool = mysql.createPool @config
     return @
@@ -62,7 +70,7 @@ module.exports = class Cado
       _options: options
       _cado: @
       pool: @pool
-      log: @config.log or console.log
+      log: @config.log or ->
 
     @models[name] = SubModel
 
