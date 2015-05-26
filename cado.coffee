@@ -26,12 +26,9 @@ class Model
 
           return reject err if err
 
-          unless records.protocol41
-            if _.isArray records
-              records = records.map (record) =>
-                return new Model _.extend(record, _model: @)
-            else
-              records = new Model _.extend(record, _model: @)
+          if _.isArray records
+            records = records.map (record) =>
+              return new Model _.extend(record, _model: @)
 
           resolve records
 
