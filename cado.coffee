@@ -21,24 +21,36 @@ class Model
         return reject err if err
 
         @log "Cado#log: #{query}"
-        connection.query query, params, (err, records) ->
+        connection.query query, params, (err, records) =>
           connection.release()
 
           return reject err if err
 
-          resolve records.map (record) ->
-            return new Model record
+          unless records.protocol41
+            if _.isArray records
+              records = records.map (record) =>
+                return new Model _.extend(record, _model: @)
+            else
+              records = new Model _.extend(record, _model: @)
+
+          resolve records
 
   @findAll: (condition) ->
-    @query @Querier condition
+    @query @Querier 'SELECT', condition
 
   @findOne: (condition) ->
-    @findAll _.extend condition,
-      limit: 1
+    @findAll _.extend({}, condition, limit: 1)
     .then (records) ->
       return _.first records
 
   @find: @findOne
+
+  @update: (values, condition) ->
+    @query @Querier 'UPDATE', values, condition
+
+  update: (values) ->
+    @_model.query @_model.Querier 'UPDATE', values,
+      id: @id
 
 module.exports = class Cado
   constructor: (@config) ->

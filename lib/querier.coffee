@@ -4,7 +4,15 @@ moment = require 'moment'
 module.exports = (table, schema, options) ->
   options = _.extend {}, options, table: table
 
-  return (query = {}) ->
+  return (params...) ->
+    model = params[0]
+    switch model
+      when 'SELECT'
+        query = params[1] ? {}
+      when 'UPDATE'
+        values = params[1] ? {}
+        query = params[2] ? {}
+
     where_sql = ''
 
     whereAnd = (condition) ->
@@ -94,8 +102,14 @@ module.exports = (table, schema, options) ->
         unless _.isEmpty conditions
           whereAnd conditions.join ' OR '
 
+    switch model
+      when 'SELECT'
+        head = selectClause query, options
+      when 'UPDATE'
+        head = updateClause values, options
+
     return _.compact([
-      selectClause query, options
+      head
       where_sql
       orderByClause query, options
       limitClause query, options
@@ -154,6 +168,13 @@ selectClause = (query, {table, fields}) ->
     return "SELECT #{fields.join ', '} FROM #{table}"
   else
     return "SELECT * FROM #{table}"
+
+updateClause = (values, {table, fields}) ->
+  table = escapeIdentifier table
+
+  fields = _.compact _.keys(values).map (key) ->
+    return "#{escapeIdentifier key} = '#{values[key]}'"
+  return "UPDATE #{table} SET #{fields.join ', '}"
 
 orderByClause = ({order_by}, {sortable}) ->
   if order_by and order_by[... 1] in ['+', '-']
