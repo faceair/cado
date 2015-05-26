@@ -38,15 +38,22 @@ class Model
   @findOne: (condition) ->
     @findAll _.extend({}, condition, limit: 1)
     .then (records) ->
-      return _.first records
+      return _.first(records) or null
 
   @find: @findOne
 
   @update: (values, condition) ->
     @query @Querier 'UPDATE', values, condition
 
+  @drop: (condition) ->
+    @query @Querier 'DELETE', condition
+
   update: (values) ->
     @_model.query @_model.Querier 'UPDATE', values,
+      id: @id
+
+  drop: ->
+    @_model.query @_model.Querier 'DELETE',
       id: @id
 
 module.exports = class Cado

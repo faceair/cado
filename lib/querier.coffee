@@ -7,11 +7,11 @@ module.exports = (table, schema, options) ->
   return (params...) ->
     model = params[0]
     switch model
-      when 'SELECT'
-        query = params[1] ? {}
+      when 'SELECT', 'DELETE'
+        query = params[1] or {}
       when 'UPDATE'
-        values = params[1] ? {}
-        query = params[2] ? {}
+        values = params[1] or {}
+        query = params[2] or {}
 
     where_sql = ''
 
@@ -82,7 +82,7 @@ module.exports = (table, schema, options) ->
             whereAnd conditions.join ' OR '
 
       else if definition.date
-        [from, to] = (value ? '').split('~').map (date) ->
+        [from, to] = (value or '').split('~').map (date) ->
           if Date.parse date
             return escape new Date date
           else
@@ -104,9 +104,11 @@ module.exports = (table, schema, options) ->
 
     switch model
       when 'SELECT'
-        head = selectClause query, options
+        head = selectClause options
       when 'UPDATE'
         head = updateClause values, options
+      when 'DELETE'
+        head = deleteClause options
 
     return _.compact([
       head
@@ -160,7 +162,7 @@ splitToArray = (value, filter) ->
 
   return _.compact values.map filter
 
-selectClause = (query, {table, fields}) ->
+selectClause = ({table, fields}) ->
   table = escapeIdentifier table
 
   if fields?.length > 0
@@ -172,9 +174,14 @@ selectClause = (query, {table, fields}) ->
 updateClause = (values, {table, fields}) ->
   table = escapeIdentifier table
 
-  fields = _.compact _.keys(values).map (key) ->
+  fields = _.keys(values).map (key) ->
     return "#{escapeIdentifier key} = '#{values[key]}'"
   return "UPDATE #{table} SET #{fields.join ', '}"
+
+deleteClause = ({table}) ->
+  table = escapeIdentifier table
+
+  return "DELETE FROM #{table}"
 
 orderByClause = ({order_by}, {sortable}) ->
   if order_by and order_by[... 1] in ['+', '-']
@@ -183,7 +190,7 @@ orderByClause = ({order_by}, {sortable}) ->
   else
     order_field = order_by
 
-  if order_field in (sortable ? [])
+  if order_field in (sortable or [])
     return "ORDER BY #{escapeIdentifier order_field}#{if desc then ' DESC' else ''}"
   else
     return ''
@@ -193,7 +200,7 @@ limitClause = ({limit, offset}, {max_limit}) ->
   offset_sql = ''
 
   if _.isFinite limit
-    limit = Math.min (max_limit ? Infinity), parseInt limit
+    limit = Math.min (max_limit or Infinity), parseInt limit
     limit_sql = "LIMIT #{escape limit}"
   else if max_limit and max_limit < Infinity
     limit_sql = "LIMIT #{escape max_limit}"
