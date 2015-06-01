@@ -6,13 +6,14 @@ querier = require './lib/querier'
 
 class Model
   constructor: (record) ->
-    _.extend @, record
+    _.extend @, _.defaults record,
+      '_model': @constructor
 
   @initialize: (options) ->
     schema = _.defaults options._schema,
       id:
         number: true
-    @Querier = querier options._table_name, options._schema
+    @Querier = querier options._table_name, schema
     _.extend @, options
 
   @query: (query, params) ->
@@ -32,6 +33,9 @@ class Model
 
           resolve records
 
+  @create: (values) ->
+    @query @Querier 'INSERT', values
+
   @findAll: (condition) ->
     @query @Querier 'SELECT', condition
 
@@ -45,15 +49,25 @@ class Model
   @update: (values, condition) ->
     @query @Querier 'UPDATE', values, condition
 
-  @drop: (condition) ->
+  @delete: (condition) ->
     @query @Querier 'DELETE', condition
 
+  save: ->
+    @_model.create @
+    .then (result) =>
+      {insertId} = result
+      @_model.findOne
+        id: insertId
+      .then (row) =>
+        _.extend @, row
+        return result
+
   update: (values) ->
-    @_model.query @_model.Querier 'UPDATE', values,
+    @_model.update values,
       id: @id
 
   drop: ->
-    @_model.query @_model.Querier 'DELETE',
+    @_model.delete
       id: @id
 
 module.exports = class Cado

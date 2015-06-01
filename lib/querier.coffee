@@ -7,11 +7,11 @@ module.exports = (table, schema, options) ->
   return (params...) ->
     model = params[0]
     switch model
-      when 'SELECT', 'DELETE'
-        query = params[1] or {}
+      when 'SELECT', 'DELETE', 'INSERT'
+        query = _.pick (params[1] or {}), _.keys(schema)
       when 'UPDATE'
-        values = params[1] or {}
-        query = params[2] or {}
+        values = _.pick (params[1] or {}), _.keys(schema)
+        query = _.pick (params[2] or {}), _.keys(schema)
 
     where_sql = ''
 
@@ -109,6 +109,9 @@ module.exports = (table, schema, options) ->
         head = updateClause values, options
       when 'DELETE'
         head = deleteClause options
+      when 'INSERT'
+        head = insertClause query, options
+        where_sql = null
 
     return _.compact([
       head
@@ -171,7 +174,7 @@ selectClause = ({table, fields}) ->
   else
     return "SELECT * FROM #{table}"
 
-updateClause = (values, {table, fields}) ->
+updateClause = (values, {table}) ->
   table = escapeIdentifier table
 
   fields = _.keys(values).map (key) ->
@@ -182,6 +185,15 @@ deleteClause = ({table}) ->
   table = escapeIdentifier table
 
   return "DELETE FROM #{table}"
+
+insertClause = (values, {table}) ->
+  table = escapeIdentifier table
+
+  keys = _.keys(values).map escapeIdentifier
+  values = _.values(values).map (value) ->
+    "'#{value}'"
+
+  return "INSERT INTO #{table} (#{keys.join ', '}) VALUES (#{values.join ', '})"
 
 orderByClause = ({order_by}, {sortable}) ->
   if order_by and order_by[... 1] in ['+', '-']
