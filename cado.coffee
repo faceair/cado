@@ -7,8 +7,8 @@ querier = require './lib/querier'
 
 class Model
   constructor: (record) ->
-    _.extend @, record
-    @extend record
+    _.extend @, record: record
+    Object.seal @
 
   @initialize: ({table_name, schema, @pool, @log}) ->
     schema = _.defaults schema,
@@ -17,6 +17,13 @@ class Model
 
     @Querier = (args...) ->
       @query querier(table_name, schema).apply(@, args)
+
+    _.keys(schema).map (key) =>
+      Object.defineProperty @prototype, key,
+        enumerable: true
+        configurable: true
+        get: ->
+          @record[key]
 
   @query: (query, params) ->
     new Promise (resolve, reject) =>
@@ -65,22 +72,12 @@ class Model
     @Querier 'DELETE', condition
 
   get: (key) ->
-    return @[key]
-
-  extend: (record) ->
-    _.keys(record).map (key) =>
-      Object.defineProperty @, key,
-        enumerable: true
-        configurable: true
-        get: ->
-          record[key]
-
-    return @
+    return @record[key]
 
   save: ->
-    @constructor.create @
-    .then (record) =>
-      @extend record
+    @constructor.create @record
+    .then ({record}) =>
+      _.extend @, record: record
 
   update: (values) ->
     unless _.isNumber @id
@@ -103,12 +100,12 @@ class Model
       throw new Error 'Cado#reload:Record id must be integer.'
 
     @constructor.findById @id
-    .then (record) =>
-      @extend record
+    .then ({record}) =>
+      _.extend @, record: record
 
   inspect: ->
     object = {}
-    for own k, v of @
+    for own k, v of @record
       object[k] = v
     return object
 
