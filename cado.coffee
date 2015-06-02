@@ -6,14 +6,17 @@ querier = require './lib/querier'
 
 class Model
   constructor: (record) ->
-    _.extend @, _.defaults record,
-      '_model': @constructor
+    _.extend @,
+      record: record
+      Model: @constructor
 
   @initialize: (options) ->
     schema = _.defaults options._schema,
       id:
         number: true
-    @Querier = querier options._table_name, schema
+    @Querier = (args...) ->
+      @query querier(options._table_name, schema).apply(@, args)
+
     _.extend @, options
 
   @query: (query, params) ->
@@ -29,46 +32,49 @@ class Model
 
           if _.isArray records
             records = records.map (record) =>
-              return new Model _.extend(record, _model: @)
+              return new @ record
 
           resolve records
 
   @create: (values) ->
-    @query @Querier 'INSERT', values
+    @Querier 'INSERT', values
 
   @findAll: (condition) ->
-    @query @Querier 'SELECT', condition
+    @Querier 'SELECT', condition
 
   @findOne: (condition) ->
-    @findAll _.extend({}, condition, limit: 1)
+    @findAll _.extend condition,
+      limit: 1
     .then (records) ->
       return _.first(records) or null
 
   @find: @findOne
 
+  @findById: (condition) ->
+    if _.isNumber condition
+      @findOne
+        id: condition
+    else
+      throw new Error 'Cado#findById:Id must be integer.'
+
   @update: (values, condition) ->
-    @query @Querier 'UPDATE', values, condition
+    @Querier 'UPDATE', values, condition
 
   @delete: (condition) ->
-    @query @Querier 'DELETE', condition
+    @Querier 'DELETE', condition
 
   save: ->
-    @_model.create @
-    .then (result) =>
-      {insertId} = result
-      @_model.findOne
-        id: insertId
-      .then (row) =>
-        _.extend @, row
-        return result
+    @Model.create @record
+    .then ({insertId}) =>
+      @Model.findById insertId
 
   update: (values) ->
-    @_model.update values,
-      id: @id
+    @Model.update values,
+      id: @record.id
 
   drop: ->
-    @_model.delete
-      id: @id
+    @Model.delete
+      id: @record.id
 
 module.exports = class Cado
   constructor: (@config) ->
@@ -81,7 +87,7 @@ module.exports = class Cado
       @pool = mysql.createPool @config
     return @
 
-  define: (name, schema, options) ->
+  model: (name, schema, options) ->
     unless @pool
       throw new Error 'Cado#model: not connected to the server'
 
