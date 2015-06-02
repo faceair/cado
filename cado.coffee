@@ -59,8 +59,11 @@ class Model
   @update: (values, condition) ->
     @Querier 'UPDATE', values, condition
 
-  @delete: (condition) ->
+  @destroy: (condition) ->
     @Querier 'DELETE', condition
+
+  get: (key) ->
+    return @record[key] or null
 
   save: ->
     @Model.create @record
@@ -75,7 +78,7 @@ class Model
     @Model.update values,
       id: @record.id
 
-  drop: ->
+  destroy: ->
     unless _.isNumber @record.id
       throw new Error 'Cado#drop:Record id must be integer.'
 
@@ -83,12 +86,16 @@ class Model
       id: @record.id
 
   reload: ->
-    unless _.isNumber @records
+    unless _.isNumber @record.id
       throw new Error 'Cado#reload:Record id must be integer.'
 
     @Model.findById @record.id
     .then ({record}) =>
       _.extend @record, record
+      return @
+
+  toJSON: ->
+    return @record
 
 module.exports = class Cado
   constructor: (@config) ->

@@ -1,7 +1,7 @@
 {
   "name": "cado",
   "version": "0.1.0",
-  "description": "Just a copy of sequelize.",
+  "description": "Simple MySQL ORM.",
   "main": "cado.coffee",
   "scripts": {
     "test": "./node_modules/.bin/mocha"

@@ -1,2 +1,2 @@
 # cado
-Just a copy of sequelize.
+Simple MySQL ORM.
