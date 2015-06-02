@@ -8,11 +8,7 @@ querier = require './lib/querier'
 class Model
   constructor: (record) ->
     _.extend @, record
-
-    _.keys(record).map (key) =>
-      Object.defineProperty @, key,
-        writable: false
-        configurable: false
+    @extend record
 
   @initialize: ({table_name, schema, @pool, @log}) ->
     schema = _.defaults schema,
@@ -69,41 +65,50 @@ class Model
     @Querier 'DELETE', condition
 
   get: (key) ->
-    return @[key] or null
+    return @[key]
+
+  extend: (record) ->
+    _.keys(record).map (key) =>
+      if _.isUndefined @get key
+        Object.defineProperty @, key,
+          value: record[key]
+          writable: false
+          enumerable: true
+          configurable: false
+
+    return @
 
   save: ->
-    @Model.create @
-    .then ({insertId}) =>
-      _.extend @, id: insertId
-      @reload()
+    @constructor.create @
+    .then (record) =>
+      @extend record
 
   update: (values) ->
     unless _.isNumber @id
       throw new Error 'Cado#update:Record id must be integer.'
 
-    @Model.update values,
+    @constructor.update values,
       id: @id
+    .then =>
+      @reload()
 
   destroy: ->
     unless _.isNumber @id
       throw new Error 'Cado#drop:Record id must be integer.'
 
-    @Model.delete
+    @constructor.delete
       id: @id
 
   reload: ->
     unless _.isNumber @id
       throw new Error 'Cado#reload:Record id must be integer.'
 
-    @Model.findById @id
-    .then ({record}) =>
-      _.extend @, record
-      return @
+    @constructor.findById @id
+    .then (record) =>
+      @extend record
 
   toJSON: ->
     return @
-
-  Model: @
 
 module.exports = class Cado
   constructor: (@config) ->
