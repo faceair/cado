@@ -7,11 +7,15 @@ module.exports = (table, schema, options) ->
   return (params...) ->
     model = params[0]
     switch model
-      when 'SELECT', 'DELETE', 'INSERT'
-        query = _.pick (params[1] or {}), _.keys(schema)
+      when 'INSERT'
+        query = {}
+        values = params[1] or {}
+      when 'SELECT', 'DELETE'
+        query = params[1] or {}
+        values = {}
       when 'UPDATE'
-        values = _.pick (params[1] or {}), _.keys(schema)
-        query = _.pick (params[2] or {}), _.keys(schema)
+        query = params[2] or {}
+        values = params[1] or {}
 
     where_sql = ''
 
@@ -110,8 +114,7 @@ module.exports = (table, schema, options) ->
       when 'DELETE'
         head = deleteClause options
       when 'INSERT'
-        head = insertClause query, options
-        where_sql = null
+        head = insertClause values, options
 
     return _.compact([
       head
