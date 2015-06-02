@@ -1,14 +1,18 @@
 inflection = require 'inflection'
-mysql = require 'mysql'
 Promise = require 'yaku'
+mysql = require 'mysql'
 _ = require 'lodash'
+
 querier = require './lib/querier'
 
 class Model
   constructor: (record) ->
-    _.extend @,
-      record: record
-      Model: @constructor
+    _.extend @, record
+
+    _.keys(record).map (key) =>
+      Object.defineProperty @, key,
+        writable: false
+        configurable: false
 
   @initialize: ({table_name, schema, @pool, @log}) ->
     schema = _.defaults schema,
@@ -37,6 +41,8 @@ class Model
 
   @create: (values) ->
     @Querier 'INSERT', values
+    .then ({insertId}) =>
+      @findById insertId
 
   @findAll: (condition) ->
     @Querier 'SELECT', condition
@@ -63,39 +69,41 @@ class Model
     @Querier 'DELETE', condition
 
   get: (key) ->
-    return @record[key] or null
+    return @[key] or null
 
   save: ->
-    @Model.create @record
+    @Model.create @
     .then ({insertId}) =>
-      _.extend @record, id: insertId
+      _.extend @, id: insertId
       @reload()
 
   update: (values) ->
-    unless _.isNumber @record.id
+    unless _.isNumber @id
       throw new Error 'Cado#update:Record id must be integer.'
 
     @Model.update values,
-      id: @record.id
+      id: @id
 
   destroy: ->
-    unless _.isNumber @record.id
+    unless _.isNumber @id
       throw new Error 'Cado#drop:Record id must be integer.'
 
     @Model.delete
-      id: @record.id
+      id: @id
 
   reload: ->
-    unless _.isNumber @record.id
+    unless _.isNumber @id
       throw new Error 'Cado#reload:Record id must be integer.'
 
-    @Model.findById @record.id
+    @Model.findById @id
     .then ({record}) =>
-      _.extend @record, record
+      _.extend @, record
       return @
 
   toJSON: ->
-    return @record
+    return @
+
+  Model: @
 
 module.exports = class Cado
   constructor: (@config) ->
