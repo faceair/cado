@@ -49,10 +49,10 @@ class Model
 
   @find: @findOne
 
-  @findById: (condition) ->
-    if _.isNumber condition
+  @findById: (id) ->
+    if _.isNumber id
       @findOne
-        id: condition
+        id: id
     else
       throw new Error 'Cado#findById:Id must be integer.'
 
@@ -65,23 +65,30 @@ class Model
   save: ->
     @Model.create @record
     .then ({insertId}) =>
-      @Model.findById insertId
-    .then ({record}) =>
-      _.extend @record, record
+      _.extend @record, id: insertId
+      @reload()
 
   update: (values) ->
-    unless @record.id
+    unless _.isNumber @record.id
       throw new Error 'Cado#update:Record id must be integer.'
 
     @Model.update values,
       id: @record.id
 
   drop: ->
-    unless @record.id
+    unless _.isNumber @record.id
       throw new Error 'Cado#drop:Record id must be integer.'
 
     @Model.delete
       id: @record.id
+
+  reload: ->
+    unless _.isNumber @records
+      throw new Error 'Cado#reload:Record id must be integer.'
+
+    @Model.findById @record.id
+    .then ({record}) =>
+      _.extend @record, record
 
 module.exports = class Cado
   constructor: (@config) ->
