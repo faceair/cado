@@ -10,14 +10,13 @@ class Model
       record: record
       Model: @constructor
 
-  @initialize: (options) ->
-    schema = _.defaults options._schema,
+  @initialize: ({table_name, schema, @pool, @log}) ->
+    schema = _.defaults schema,
       id:
         number: true
-    @Querier = (args...) ->
-      @query querier(options._table_name, schema).apply(@, args)
 
-    _.extend @, options
+    @Querier = (args...) ->
+      @query querier(table_name, schema).apply(@, args)
 
   @query: (query, params) ->
     new Promise (resolve, reject) =>
@@ -67,12 +66,20 @@ class Model
     @Model.create @record
     .then ({insertId}) =>
       @Model.findById insertId
+    .then ({record}) =>
+      _.extend @record, record
 
   update: (values) ->
+    unless @record.id
+      throw new Error 'Cado#update:Record id must be integer.'
+
     @Model.update values,
       id: @record.id
 
   drop: ->
+    unless @record.id
+      throw new Error 'Cado#drop:Record id must be integer.'
+
     @Model.delete
       id: @record.id
 
@@ -100,11 +107,8 @@ module.exports = class Cado
     class SubModel extends Model
 
     SubModel.initialize
-      _name: name
-      _schema: schema
-      _table_name: inflection.pluralize name.toLowerCase()
-      _options: options
-      _cado: @
+      schema: schema
+      table_name: inflection.pluralize name.toLowerCase()
       pool: @pool
       log: @config.log or ->
 
