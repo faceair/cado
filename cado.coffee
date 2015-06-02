@@ -69,12 +69,11 @@ class Model
 
   extend: (record) ->
     _.keys(record).map (key) =>
-      if _.isUndefined @get key
-        Object.defineProperty @, key,
-          value: record[key]
-          writable: false
-          enumerable: true
-          configurable: false
+      Object.defineProperty @, key,
+        enumerable: true
+        configurable: true
+        get: ->
+          record[key]
 
     return @
 
@@ -107,8 +106,15 @@ class Model
     .then (record) =>
       @extend record
 
-  toJSON: ->
-    return @
+  inspect: ->
+    object = {}
+    for own k, v of @
+      object[k] = v
+    return object
+
+  toJSON: @prototype.inspect
+
+  toString: @prototype.inspect
 
 module.exports = class Cado
   constructor: (@config) ->
