@@ -64,11 +64,12 @@ class Model
   @find: @findOne
 
   @findById: (id) ->
-    if _.isNumber id
+    Promise.resolve().then =>
+      unless _.isNumber id
+        throw new Error 'Cado#findById:Id must be integer.'
+
       @findOne
         id: id
-    else
-      throw new Error 'Cado#findById:Id must be integer.'
 
   @update: (values, condition) ->
     @Querier 'UPDATE', values, condition
@@ -85,20 +86,22 @@ class Model
       _.extend @, record: record
 
   update: (values) ->
-    unless _.isNumber @id
-      throw new Error 'Cado#update:Record id must be integer.'
+    Promise.resolve().then =>
+      unless _.isNumber @id
+        throw new Error 'Cado#update:Record id must be integer.'
 
-    @constructor.update values,
-      id: @id
-    .then =>
-      @reload()
+      @constructor.update values,
+        id: @id
+      .then =>
+        @reload()
 
   destroy: ->
-    unless _.isNumber @id
-      throw new Error 'Cado#drop:Record id must be integer.'
+    Promise.resolve().then =>
+      unless _.isNumber @id
+        throw new Error 'Cado#drop:Record id must be integer.'
 
-    @constructor.delete
-      id: @id
+      @constructor.delete
+        id: @id
 
   reload: ->
     unless _.isNumber @id
