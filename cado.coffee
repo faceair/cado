@@ -112,7 +112,7 @@ class Model
       _.extend @, record: record
 
   inspect: ->
-    return @record
+    return _.clone @record
 
   toJSON: @prototype.inspect
 
