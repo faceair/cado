@@ -126,7 +126,8 @@ class Model
 
   toJSON: @prototype.inspect
 
-  toString: @prototype.inspect
+  toString: ->
+    return JSON.stringify @inspect()
 
 module.exports = class Cado
   constructor: (@config) ->
