@@ -7,23 +7,19 @@ querier = require './lib/querier'
 
 class Model
   constructor: (record) ->
-    Object.defineProperty @, 'record',
-      enumerable: false
-      configurable: true
-      writable: true
-      value: record
+    @extend record
 
     Object.seal @
 
   @initialize: ({table_name, schema, @pool, @log}) ->
-    schema = _.defaults schema,
+    @schema = _.defaults schema,
       id:
         number: true
 
     @Querier = (args...) ->
-      @query querier(table_name, schema).apply(@, args)
+      @query querier(table_name, @schema).apply(@, args)
 
-    _.keys(schema).map (key) =>
+    _.keys(@schema).map (key) =>
       Object.defineProperty @prototype, key,
         enumerable: true
         configurable: false
@@ -80,10 +76,23 @@ class Model
   get: (key) ->
     return @record[key]
 
+  extend: (record) ->
+    record = _.pick record, _.keys(@constructor.schema)
+    if @record
+      @record = record
+    else
+      Object.defineProperty @, 'record',
+        enumerable: false
+        configurable: true
+        writable: true
+        value: record
+
+    return @
+
   save: ->
     @constructor.create @record
     .then ({record}) =>
-      _.extend @, record: record
+      @extend record
 
   update: (values) ->
     Promise.resolve().then =>
@@ -110,7 +119,7 @@ class Model
 
       @constructor.findById @id
       .then ({record}) =>
-        _.extend @, record: record
+        @extend record
 
   inspect: ->
     return _.clone @record
