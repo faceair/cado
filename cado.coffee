@@ -104,12 +104,13 @@ class Model
         id: @id
 
   reload: ->
-    unless _.isNumber @id
-      throw new Error 'Cado#reload:Record id must be integer.'
+    Promise.resolve().then =>
+      unless _.isNumber @id
+        throw new Error 'Cado#reload:Record id must be integer.'
 
-    @constructor.findById @id
-    .then ({record}) =>
-      _.extend @, record: record
+      @constructor.findById @id
+      .then ({record}) =>
+        _.extend @, record: record
 
   inspect: ->
     return _.clone @record
