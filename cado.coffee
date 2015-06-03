@@ -7,7 +7,7 @@ querier = require './lib/querier'
 
 class Model
   constructor: (record) ->
-    @extend record
+    @refresh record
 
     Object.seal @
 
@@ -76,7 +76,7 @@ class Model
   get: (key) ->
     return @record[key]
 
-  extend: (record) ->
+  refresh: (record) ->
     record = _.pick record, _.keys(@constructor.schema)
     if _.isUndefined @record
       Object.defineProperty @, 'record',
@@ -92,7 +92,7 @@ class Model
   save: ->
     @constructor.create @record
     .then ({record}) =>
-      @extend record
+      @refresh record
 
   update: (values) ->
     Promise.resolve().then =>
@@ -119,7 +119,7 @@ class Model
 
       @constructor.findById @id
       .then ({record}) =>
-        @extend record
+        @refresh record
 
   inspect: ->
     return _.clone @record
