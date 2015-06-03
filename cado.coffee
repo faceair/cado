@@ -78,14 +78,14 @@ class Model
 
   extend: (record) ->
     record = _.pick record, _.keys(@constructor.schema)
-    if @record
-      @record = record
-    else
+    if _.isUndefined @record
       Object.defineProperty @, 'record',
         enumerable: false
         configurable: true
         writable: true
         value: record
+    else
+      @record = record
 
     return @
 
