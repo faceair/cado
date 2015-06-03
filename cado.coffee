@@ -7,7 +7,12 @@ querier = require './lib/querier'
 
 class Model
   constructor: (record) ->
-    _.extend @, record: record
+    Object.defineProperty @, 'record',
+      enumerable: false
+      configurable: true
+      writable: true
+      value: record
+
     Object.seal @
 
   @initialize: ({table_name, schema, @pool, @log}) ->
@@ -21,7 +26,7 @@ class Model
     _.keys(schema).map (key) =>
       Object.defineProperty @prototype, key,
         enumerable: true
-        configurable: true
+        configurable: false
         get: ->
           @record[key]
 
@@ -104,10 +109,7 @@ class Model
       _.extend @, record: record
 
   inspect: ->
-    object = {}
-    for own k, v of @record
-      object[k] = v
-    return object
+    return @record
 
   toJSON: @prototype.inspect
 
