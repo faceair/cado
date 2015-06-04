@@ -6,7 +6,11 @@ _ = require 'lodash'
 querier = require './lib/querier'
 
 class Model
-  constructor: (record) ->
+  constructor: (record, options = {}) ->
+    _.extend @, _.defaults options,
+      is_new: true
+      is_destroy: false
+
     @refresh record
 
     Object.seal @
@@ -39,7 +43,8 @@ class Model
 
           if _.isArray records
             records = records.map (record) =>
-              return new @ record
+              return new @ record,
+                is_new: false
 
           resolve records
 
@@ -76,7 +81,7 @@ class Model
   get: (key) ->
     return @record[key]
 
-  refresh: (record) ->
+  refresh: (record, options = {}) ->
     record = _.pick record, _.keys(@constructor.schema)
     if _.isUndefined @record
       Object.defineProperty @, 'record',
@@ -87,41 +92,65 @@ class Model
     else
       @record = record
 
+    _.extend @, options
+
     return @
 
   save: ->
+    unless @is_new
+      throw new Error 'Cado#save:Record has been save.'
+
     @constructor.create @record
     .then ({record}) =>
-      @refresh record
+      @refresh record,
+        is_new: false
+
+  verify: (method) ->
+    if @is_new
+      throw new Error "Cado##{method}:Record must be save."
+
+    unless _.isNumber @id
+      throw new Error "Cado##{method}:Record id must be integer."
+
+    if @is_destroy
+      throw new Error "Cado##{method}:Record has been destroy."
 
   update: (values) ->
     Promise.resolve().then =>
-      unless _.isNumber @id
-        throw new Error 'Cado#update:Record id must be integer.'
+      @verify 'update'
 
       @constructor.update values,
         id: @id
-      .then =>
+      .then ({affectedRows}) =>
+        unless affectedRows > 0
+          throw new Error 'Cado#update:Record update fail.'
         @reload()
 
   destroy: ->
     Promise.resolve().then =>
-      unless _.isNumber @id
-        throw new Error 'Cado#drop:Record id must be integer.'
+      @verify 'destroy'
 
-      @constructor.delete
+      @constructor.destroy
         id: @id
+      .then ({affectedRows}) =>
+        unless affectedRows > 0
+          throw new Error 'Cado#destroy:Record destroy fail.'
+        @is_destroy = true
 
   reload: ->
     Promise.resolve().then =>
-      unless _.isNumber @id
-        throw new Error 'Cado#reload:Record id must be integer.'
+      @verify 'reload'
 
       @constructor.findById @id
       .then ({record}) =>
+        unless record
+          throw new Error 'Cado#reload:Record reload fail.'
         @refresh record
 
   inspect: ->
+    if @is_destroy
+      throw new Error 'Cado#inspect:Record has been destroy.'
+
     return _.clone @record
 
   toJSON: @prototype.inspect
