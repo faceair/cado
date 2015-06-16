@@ -27,6 +27,10 @@ module.exports = class Model
         configurable: false
         get: ->
           @record[key]
+        set: (value) ->
+          data = {}
+          data[key] = value
+          @update data
 
   @query: (query, params) ->
     new Promise (resolve, reject) =>
