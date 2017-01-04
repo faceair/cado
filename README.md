@@ -1,2 +1,2 @@
 # cado
-Simple MySQL ORM.
+Simple ORM for LokiJS.
