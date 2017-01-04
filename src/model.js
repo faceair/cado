@@ -3,8 +3,9 @@ import _ from 'lodash';
 export default class Model {
   constructor(record, options = {}) {
     _.extend(this, _.defaults(options, {
-      is_new: true,
-      is_destroy: false,
+      _isNew: true,
+      _isRemoved: false,
+      _hasChangedFields: new Set(),
     }));
 
     this.refresh(record);
@@ -24,9 +25,8 @@ export default class Model {
           return this.record[key];
         },
         set(value) {
-          const data = {};
-          data[key] = value;
-          this.update(data);
+          this._hasChangedFields.add(key);
+          this.record[key] = value;
         },
       });
     });
@@ -35,9 +35,9 @@ export default class Model {
   static query(method, ...args) {
     let records = this.collection[method](...args);
     if (_.isArray(records)) {
-      records = records.map(record => new this(record, { is_new: false }));
+      records = records.map(record => new this(record, { _isNew: false }));
     } else if (!_.isNull(records) && _.isObject(records)) {
-      records = new this(records, { is_new: false });
+      records = new this(records, { _isNew: false });
     }
     return records;
   }
@@ -111,46 +111,49 @@ export default class Model {
   }
 
   save() {
-    if (!this.is_new) {
-      throw new Error('Cado#save:Record has been save.');
+    if (this._isNew) {
+      const { record } = this.constructor.create(this.record);
+      this.refresh(record, {
+        _isNew: false,
+        _hasChangedFields: new Set(),
+      });
+    } else {
+      const updateObject = _.pick(this.record, Array.from(this._hasChangedFields));
+      const { record } = this.constructor.findAndUpdate({ $loki: this.$loki }, updateObject);
+      this.refresh(record, { _hasChangedFields: new Set() });
     }
-
-    const { record } = this.constructor.create(this.record);
-    this.refresh(record, {
-      is_new: false,
-    });
 
     return this;
   }
 
   isAvailable(method) {
-    if (this.is_new) {
+    if (this._isRemoved) {
+      throw new Error(`Cado#${method}:Record has been destroy.`);
+    }
+
+    if (this._isNew || this._hasChangedFields.size) {
       throw new Error(`Cado#${method}:Record must be save.`);
     }
 
-    if (!_.isNumber(this.id)) {
-      throw new Error(`Cado#${method}:Record id must be integer.`);
-    }
-
-    if (this.is_destroy) {
-      throw new Error(`Cado#${method}:Record has been destroy.`);
+    if (!_.isNumber(this.$loki)) {
+      throw new Error(`Cado#${method}:Record $loki must be integer.`);
     }
   }
 
   update(values) {
     this.isAvailable('update');
 
-    const { record } = this.constructor.findAndUpdate({ id: this.id }, values);
-    this.refresh(record);
+    const { record } = this.constructor.findAndUpdate({ $loki: this.$loki }, values);
+    this.refresh(record, { _hasChangedFields: new Set() });
 
     return this;
   }
 
-  destroy() {
+  remove() {
     this.isAvailable('destroy');
 
-    this.constructor.findAndRemove({ id: this.id });
-    this.is_destroy = true;
+    this.constructor.findAndRemove({ $loki: this.$loki });
+    this._isRemoved = true;
 
     return this;
   }
@@ -158,14 +161,14 @@ export default class Model {
   reload() {
     this.isAvailable('reload');
 
-    const { record } = this.constructor.findById(this.id);
+    const { record } = this.constructor.findById(this.$loki);
     this.refresh(record);
 
     return this;
   }
 
   inspect() {
-    if (this.is_destroy) {
+    if (this._isRemoved) {
       throw new Error('Cado#inspect:Record has been destroy.');
     }
 

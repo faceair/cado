@@ -1,7 +1,7 @@
 import Cado from '../src/cado';
 
 const cado = new Cado({
-  filename: 'test.db',
+  filename: `${__dirname}/test.db`,
   autoloadCallback: () => {
     const User = cado.model('user', {
       name: {
@@ -27,6 +27,4 @@ const cado = new Cado({
     console.log(newUser.id);
   },
 });
-
-
 
