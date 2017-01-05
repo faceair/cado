@@ -5,14 +5,16 @@ const cado = new Cado({
   autoloadCallback: () => {
     const User = cado.model('user', {
       name: {
-        string: true,
+        type: true,
       },
       phone: {
-        string: true,
+        type: true,
       },
       address: {
-        string: true,
+        type: true,
       },
+    }, {
+      autoSave: true,
     });
 
     const user = new User({
@@ -24,7 +26,16 @@ const cado = new Cado({
     const newUser = user.save();
 
     console.log(newUser);
-    console.log(newUser.id);
+
+    newUser.phone = '3333333333';
+
+    console.log(newUser);
+    console.log(User.findById(newUser.id));
+
+    setTimeout(() => {
+      console.log(newUser);
+      console.log(User.findById(newUser.id));
+    }, 3000);
   },
 });
 
