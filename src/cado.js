@@ -24,7 +24,7 @@ export default class Cado {
 
   model(name, definition, options = {}) {
     if (!this.loki) {
-      throw new Error('Cado#model: not connected to the server');
+      throw new Error('Cado#model: Not connected to the server');
     }
 
     if (this.models[name]) {

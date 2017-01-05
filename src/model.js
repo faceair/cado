@@ -15,7 +15,6 @@ export default class Model {
 
   static initialize({ name, definition, options, loki }) {
     this.options = options;
-    this.definition = definition;
     this.schema = this.buildSchema(definition);
     this.loki = loki;
     this.collection = loki.getCollection(name) ||
@@ -32,7 +31,7 @@ export default class Model {
       } else if (_.isPlainObject(value)) {
         definition[key] = this.buildSchema(value);
       } else {
-        throw new Error('Cado#Schema:You must provide a joi schema.');
+        throw new Error('Cado#Schema: You must provide a joi schema.');
       }
     });
     return Joi.object().keys(definition);
@@ -142,25 +141,28 @@ export default class Model {
     return this;
   }
 
-  populate(field, collectionName) {
-    const collection = this.loki.getCollection(collectionName);
-    if (!collection) {
-      throw new Error('Cado#Populate:Collection is not exists.');
+  populate(field) {
+    if (!(field in this.options.foreignKeys)) {
+      throw new Error(`Cado#Populate: Unknown foreign key ${field}`);
     }
-    this[field] = collection.get(this[field]);
+    const collection = this.loki.getCollection(this.options.foreignKeys[field]);
+    if (!collection) {
+      throw new Error('Cado#Populate: Collection is not exists.');
+    }
+    return collection.get(this[field]);
   }
 
   isAvailable(method) {
     if (this._isRemoved) {
-      throw new Error(`Cado#${method}:Record has been removed.`);
+      throw new Error(`Cado#${method}: Record has been removed.`);
     }
 
     if (this._isNew) {
-      throw new Error(`Cado#${method}:Record must be save.`);
+      throw new Error(`Cado#${method}: Record must be save.`);
     }
 
     if (!_.isNumber(this.$loki)) {
-      throw new Error(`Cado#${method}:Record $loki must be integer.`);
+      throw new Error(`Cado#${method}: Record $loki must be integer.`);
     }
   }
 
@@ -193,7 +195,7 @@ export default class Model {
 
   inspect() {
     if (this._isRemoved) {
-      throw new Error('Cado#inspect:Record has been removed.');
+      throw new Error('Cado#Inspect: Record has been removed.');
     }
 
     return _.pick(this, Object.keys(this));
