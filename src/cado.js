@@ -1,3 +1,4 @@
+import 'object.observe';
 import _ from 'lodash';
 import Loki from 'lokijs';
 import Model from './model';

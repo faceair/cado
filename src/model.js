@@ -1,19 +1,25 @@
 import _ from 'lodash';
 import Joi from 'joi';
+import Observed from 'observed';
 
 export default class Model {
-  constructor(record, extra = {}) {
-    _.extend(this, _.defaults(extra, {
+  constructor(record, options = {}) {
+    _.mapKeys(_.defaults(options, {
       _isNew: true,
       _isRemoved: false,
       _hasChangedFields: new Set(),
-    }));
+    }), (value, key) => {
+      Object.defineProperty(this, key, { writable: true, enumerable: false, value });
+    });
 
-    this.refresh(record);
-    Object.seal(this);
+    this.refresh(record, options);
+
+    Observed(this).on('change', change => this.constructor.dataObserver(change, this));
   }
 
   static initialize({ name, definition, options, loki }) {
+    this.options = options;
+    this.definition = definition;
     this.schema = this.buildSchema(definition);
     this.loki = loki;
     this.collection = loki.getCollection(name) ||
@@ -21,23 +27,6 @@ export default class Model {
         autoupdate: false,
         clone: true,
       }));
-
-    _.mapKeys(definition, ($, key) => {
-      Object.defineProperty(this.prototype, key, {
-        enumerable: true,
-        configurable: false,
-        get() {
-          return this.record[key];
-        },
-        set(value) {
-          this._hasChangedFields.add(key);
-          this.record[key] = value;
-          if (options.autoSave === true) {
-            process.nextTick(() => this.save.apply(this));
-          }
-        },
-      });
-    });
   }
 
   static buildSchema(definition) {
@@ -51,6 +40,16 @@ export default class Model {
       }
     });
     return Joi.object().keys(definition);
+  }
+
+  static dataObserver(change, instance) {
+    console.log(change);
+    if (change.type === 'update' && !change.name.startsWith('_')) {
+      instance._hasChangedFields.add(change.name);
+      if (this.options.autoSave === true) {
+        instance.save.apply(instance);
+      }
+    }
   }
 
   static validate(record) {
@@ -68,7 +67,7 @@ export default class Model {
   }
 
   static create(docs) {
-    if (_.isPlainObject(docs)) docs = [docs];
+    if (_.isObject(docs)) docs = [docs];
 
     docs = docs.map((doc) => {
       const { error, value } = this.validate(doc);
@@ -127,39 +126,39 @@ export default class Model {
   }
 
   get id() {
-    return this.record.$loki;
+    return this.$loki;
   }
 
   refresh(record, options = {}) {
-    if (_.isUndefined(this.record)) {
-      Object.defineProperty(this, 'record', {
-        enumerable: false,
-        configurable: true,
-        writable: true,
-        value: record,
-      });
-    } else {
-      this.record = record;
+    if (record instanceof this.constructor) {
+      this.$loki = record.$loki;
+      record = record.toObject();
     }
-
-    _.extend(this, options);
-    return this;
+    return _.extend(this, record, _.pick(options, ['_isNew', '_isRemoved', '_hasChangedFields']));
   }
 
   save() {
     if (this._isNew) {
-      const { record } = this.constructor.create(this.record);
-      this.refresh(record, {
+      const instance = this.constructor.create(this);
+      this.refresh(instance, {
         _isNew: false,
         _hasChangedFields: new Set(),
       });
-    } else {
-      const updateObject = _.pick(this.record, Array.from(this._hasChangedFields));
-      this.constructor.findAndUpdate({ $loki: this.record.$loki }, updateObject);
-      this.updateRecord(updateObject);
+    } else if (this._hasChangedFields.size) {
+      const updateObject = _.pick(this, Array.from(this._hasChangedFields));
+      this.constructor.findAndUpdate({ $loki: this.$loki }, updateObject);
+      this.refresh(updateObject, { _hasChangedFields: new Set() });
     }
 
     return this;
+  }
+
+  populate(field, collectionName) {
+    const collection = this.loki.getCollection(collectionName);
+    if (!collection) {
+      throw new Error('Cado#Populate:Collection is not exists.');
+    }
+    this[field] = collection.get(this[field]);
   }
 
   isAvailable(method) {
@@ -171,7 +170,7 @@ export default class Model {
       throw new Error(`Cado#${method}:Record must be save.`);
     }
 
-    if (!_.isNumber(this.record.$loki)) {
+    if (!_.isNumber(this.$loki)) {
       throw new Error(`Cado#${method}:Record $loki must be integer.`);
     }
   }
@@ -179,22 +178,16 @@ export default class Model {
   update(updateObject) {
     this.isAvailable('update');
 
-    this.constructor.findAndUpdate({ $loki: this.record.$loki }, updateObject);
-    this.updateRecord(updateObject);
+    this.constructor.findAndUpdate({ $loki: this.$loki }, updateObject);
+    this.refresh(updateObject);
 
-    return this;
-  }
-
-  updateRecord(updateObject) {
-    _.extend(this.record, updateObject);
-    this._hasChangedFields = new Set();
     return this;
   }
 
   remove() {
     this.isAvailable('destroy');
 
-    this.constructor.findAndRemove({ $loki: this.record.$loki });
+    this.constructor.findAndRemove({ $loki: this.$loki });
     this._isRemoved = true;
 
     return this;
@@ -203,8 +196,8 @@ export default class Model {
   reload() {
     this.isAvailable('reload');
 
-    const { record } = this.constructor.findById(this.record.$loki);
-    this.refresh(record);
+    const instance = this.constructor.findById(this.$loki);
+    this.refresh(instance);
 
     return this;
   }
@@ -214,7 +207,7 @@ export default class Model {
       throw new Error('Cado#inspect:Record has been removed.');
     }
 
-    return _.omit(this.record, ['meta']);
+    return _.pick(this, Object.keys(this));
   }
 
   toString() {

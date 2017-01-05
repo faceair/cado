@@ -20,7 +20,9 @@
   "dependencies": {
     "joi": "^10.1.0",
     "lodash": "^4.17.4",
-    "lokijs": "faceair/LokiJS#e0357aff5f5dae1695d6bd056767a6f4f8be6ad8"
+    "lokijs": "techfort/LokiJS#fe432460d7cd4824c407f618cc967a01eb25f10c",
+    "object.observe": "^0.2.6",
+    "observed": "^1.1.2"
   },
   "devDependencies": {
     "babel-cli": "^6.18.0",
