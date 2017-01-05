@@ -18,8 +18,9 @@
   },
   "homepage": "https://github.com/faceair/cado",
   "dependencies": {
+    "joi": "^10.1.0",
     "lodash": "^4.17.4",
-    "lokijs": "^1.4.2"
+    "lokijs": "faceair/LokiJS#e0357aff5f5dae1695d6bd056767a6f4f8be6ad8"
   },
   "devDependencies": {
     "babel-cli": "^6.18.0",

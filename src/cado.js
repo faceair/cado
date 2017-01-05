@@ -22,13 +22,13 @@ export default class Cado {
     return this;
   }
 
-  model(name, schema, options = {}) {
+  model(name, definition, options = {}) {
     if (!this.loki) {
       throw new Error('Cado#model: not connected to the server');
     }
 
     if (this.models[name]) {
-      if (schema) {
+      if (definition) {
         throw new Error(`Cado#model: ${name} already exists`);
       } else {
         return this.models[name];
@@ -39,7 +39,7 @@ export default class Cado {
 
     SubModel.initialize({
       name: name.toLowerCase(),
-      schema,
+      definition,
       options,
       loki: this.loki,
     });

@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import Joi from 'joi';
 
 export default class Model {
   constructor(record, extra = {}) {
@@ -12,16 +13,16 @@ export default class Model {
     Object.seal(this);
   }
 
-  static initialize({ name, schema, options, loki }) {
+  static initialize({ name, definition, options, loki }) {
+    this.schema = this.buildSchema(definition);
     this.loki = loki;
-    this.schema = schema;
     this.collection = loki.getCollection(name) ||
       loki.addCollection(name, _.defaults(options.indexes || {}, {
         autoupdate: false,
         clone: true,
       }));
 
-    _.mapKeys(schema, ($, key) => {
+    _.mapKeys(definition, ($, key) => {
       Object.defineProperty(this.prototype, key, {
         enumerable: true,
         configurable: false,
@@ -39,17 +40,45 @@ export default class Model {
     });
   }
 
+  static buildSchema(definition) {
+    _.mapKeys(definition, (value, key) => {
+      if (_.isObject(value) && value.isJoi) {
+        definition[key] = value;
+      } else if (_.isPlainObject(value)) {
+        definition[key] = this.buildSchema(value);
+      } else {
+        throw new Error('Cado#Schema:You must provide a joi schema.');
+      }
+    });
+    return Joi.object().keys(definition);
+  }
+
+  static validate(record) {
+    return Joi.validate(record, this.schema, { stripUnknown: true });
+  }
+
   static query(method, ...args) {
     let records = this.collection[method](...args);
     if (_.isArray(records)) {
       records = records.map(record => new this(record, { _isNew: false }));
-    } else if (records && _.isObject(records)) {
+    } else if (records && _.isPlainObject(records)) {
       records = new this(records, { _isNew: false });
     }
     return records;
   }
 
   static create(docs) {
+    if (_.isPlainObject(docs)) docs = [docs];
+
+    docs = docs.map((doc) => {
+      const { error, value } = this.validate(doc);
+      if (error) {
+        throw new Error(_.first(error.details).message);
+      }
+      return value;
+    });
+
+    if (docs.length === 1) docs = _.first(docs);
     return this.query('insert', docs);
   }
 
@@ -135,7 +164,7 @@ export default class Model {
 
   isAvailable(method) {
     if (this._isRemoved) {
-      throw new Error(`Cado#${method}:Record has been destroy.`);
+      throw new Error(`Cado#${method}:Record has been removed.`);
     }
 
     if (this._isNew || this._hasChangedFields.size) {
@@ -182,7 +211,7 @@ export default class Model {
 
   inspect() {
     if (this._isRemoved) {
-      throw new Error('Cado#inspect:Record has been destroy.');
+      throw new Error('Cado#inspect:Record has been removed.');
     }
 
     return _.omit(this.record, ['meta']);
