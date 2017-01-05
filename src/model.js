@@ -1,20 +1,16 @@
 import _ from 'lodash';
 import Joi from 'joi';
-import Observed from 'observed';
 
 export default class Model {
   constructor(record, options = {}) {
     _.mapKeys(_.defaults(options, {
       _isNew: true,
       _isRemoved: false,
-      _hasChangedFields: new Set(),
     }), (value, key) => {
       Object.defineProperty(this, key, { writable: true, enumerable: false, value });
     });
 
     this.refresh(record, options);
-
-    Observed(this).on('change', change => this.constructor.dataObserver(change, this));
   }
 
   static initialize({ name, definition, options, loki }) {
@@ -40,16 +36,6 @@ export default class Model {
       }
     });
     return Joi.object().keys(definition);
-  }
-
-  static dataObserver(change, instance) {
-    console.log(change);
-    if (change.type === 'update' && !change.name.startsWith('_')) {
-      instance._hasChangedFields.add(change.name);
-      if (this.options.autoSave === true) {
-        instance.save.apply(instance);
-      }
-    }
   }
 
   static validate(record) {
@@ -134,7 +120,7 @@ export default class Model {
       this.$loki = record.$loki;
       record = record.toObject();
     }
-    return _.extend(this, record, _.pick(options, ['_isNew', '_isRemoved', '_hasChangedFields']));
+    return _.extend(this, record, _.pick(options, ['_isNew', '_isRemoved']));
   }
 
   save() {
@@ -142,12 +128,11 @@ export default class Model {
       const instance = this.constructor.create(this);
       this.refresh(instance, {
         _isNew: false,
-        _hasChangedFields: new Set(),
       });
-    } else if (this._hasChangedFields.size) {
-      const updateObject = _.pick(this, Array.from(this._hasChangedFields));
+    } else {
+      const updateObject = _.omit(this.toObject(), ['$loki', 'meta']);
       this.constructor.findAndUpdate({ $loki: this.$loki }, updateObject);
-      this.refresh(updateObject, { _hasChangedFields: new Set() });
+      this.refresh(updateObject);
     }
 
     return this;
@@ -166,7 +151,7 @@ export default class Model {
       throw new Error(`Cado#${method}:Record has been removed.`);
     }
 
-    if (this._isNew || this._hasChangedFields.size) {
+    if (this._isNew) {
       throw new Error(`Cado#${method}:Record must be save.`);
     }
 
