@@ -92,6 +92,10 @@ export default class Model {
       _.mapKeys(updateObject, (value, key) => {
         doc[key] = value;
       });
+      const { error } = this.validate(doc);
+      if (error) {
+        throw new Error(_.first(error.details).message);
+      }
     });
   }
 
