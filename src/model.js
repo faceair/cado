@@ -117,10 +117,6 @@ export default class Model {
     this.query('clear');
   }
 
-  static isCadoModel() {
-    return true;
-  }
-
   get id() {
     return this.$loki;
   }
@@ -174,7 +170,7 @@ export default class Model {
   }
 
   update(updateObject) {
-    this.isAvailable('update');
+    this.isAvailable('Update');
 
     updateObject = _.omit(updateObject, ['$loki', 'meta']);
     this.constructor.findAndUpdate({ $loki: this.$loki }, updateObject);
@@ -184,7 +180,7 @@ export default class Model {
   }
 
   remove() {
-    this.isAvailable('destroy');
+    this.isAvailable('Remove');
 
     this.constructor.findAndRemove({ $loki: this.$loki });
     this._isRemoved = true;
@@ -193,7 +189,7 @@ export default class Model {
   }
 
   reload() {
-    this.isAvailable('reload');
+    this.isAvailable('Reload');
 
     const instance = this.constructor.findById(this.$loki);
     this.refresh(instance);

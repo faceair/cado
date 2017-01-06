@@ -29,6 +29,21 @@ describe('Cado', () => {
       });
       assert.ok(cado.loki);
     });
+    it('connect failed with duplicate', () => {
+      const cado = new Cado();
+      cado.connect({
+        filename: `${__dirname}/test.db`,
+      });
+      assert.throws(
+        () => {
+          cado.connect({
+            filename: `${__dirname}/test.db`,
+          });
+          assert.ok(!cado.loki);
+        },
+        Error,
+      );
+    });
   });
   describe('#model', () => {
     it('create success', () => {
@@ -40,7 +55,7 @@ describe('Cado', () => {
         phone: Joi.string(),
         address: Joi.string(),
       });
-      assert.ok(User.isCadoModel);
+      assert.ok(User.findAndUpdateByFunction);
     });
     it('create failed without joi schema', () => {
       const cado = new Cado({
@@ -53,7 +68,7 @@ describe('Cado', () => {
             phone: String,
             address: String,
           });
-          assert.ok(!User.isCadoModel);
+          assert.ok(!User.findAndUpdateByFunction);
         },
         Error,
       );
@@ -67,7 +82,7 @@ describe('Cado', () => {
         phone: Joi.string(),
         address: Joi.string(),
       });
-      assert.ok(User.isCadoModel);
+      assert.ok(User.findAndUpdateByFunction);
       assert.throws(
         () => {
           const DuplicateUser = cado.model('user', {
@@ -75,7 +90,7 @@ describe('Cado', () => {
             phone: Joi.string(),
             address: Joi.string(),
           });
-          assert.ok(!DuplicateUser.isCadoModel);
+          assert.ok(!DuplicateUser.findAndUpdateByFunction);
         },
         Error,
       );
@@ -89,7 +104,7 @@ describe('Cado', () => {
             phone: String,
             address: String,
           });
-          assert.ok(!User.isCadoModel);
+          assert.ok(!User.findAndUpdateByFunction);
         },
         Error,
       );
@@ -103,8 +118,8 @@ describe('Cado', () => {
         phone: Joi.string(),
         address: Joi.string(),
       });
-      assert.ok(User.isCadoModel);
-      assert.ok(cado.model('user').isCadoModel);
+      assert.ok(User.findAndUpdateByFunction);
+      assert.ok(cado.model('user').findAndUpdateByFunction);
     });
   });
 });

@@ -13,26 +13,28 @@ export default class Cado {
   connect(config) {
     if (!this.loki) {
       if (!config.filename) {
-        throw new Error('Cado#model: config.filename is required.');
+        throw new Error('Cado#Connect: config.filename is required.');
       }
       this.loki = new Loki(config.filename, _.defaults(config, {
         env: 'NODEJS',
         autosave: true,
         autoload: true,
       }));
+      this.config = config;
+    } else {
+      throw new Error('Cado#Connect: cado has been already connected.');
     }
-    this.config = config;
     return this;
   }
 
   model(name, definition, options = {}) {
     if (!this.loki) {
-      throw new Error('Cado#model: Not connected to the server');
+      throw new Error('Cado#Model: Not connected to the server');
     }
 
     if (this.models[name]) {
       if (definition) {
-        throw new Error(`Cado#model: ${name} already exists`);
+        throw new Error(`Cado#Model: ${name} already exists`);
       } else {
         return this.models[name];
       }
@@ -41,7 +43,7 @@ export default class Cado {
     class SubModel extends Model {}
 
     SubModel.initialize({
-      name: name.toLowerCase(),
+      name,
       definition,
       options,
       loki: this.loki,
@@ -51,9 +53,4 @@ export default class Cado {
 
     return SubModel;
   }
-
-  static isCado() {
-    return true;
-  }
 }
-
