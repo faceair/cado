@@ -123,7 +123,7 @@ export default class Model {
     return this.$loki;
   }
 
-  refresh(record, options = {}) {
+  refresh(record = {}, options = {}) {
     if (record instanceof this.constructor) {
       this.$loki = record.$loki;
       record = record.toObject();
@@ -195,6 +195,10 @@ export default class Model {
 
     const instance = this.constructor.findById(this.$loki);
     this.refresh(instance);
+
+    if (!instance) {
+      this._isRemoved = true;
+    }
 
     return this;
   }
