@@ -22,6 +22,8 @@ export default class Model {
         autoupdate: false,
         clone: true,
       }));
+    if (_.isObject(options.statics)) _.extend(this, options.statics);
+    if (_.isObject(options.methods)) _.extend(this.prototype, options.methods);
   }
 
   static buildSchema(definition) {
