@@ -12,6 +12,9 @@ export default class Cado {
 
   connect(config) {
     if (!this.loki) {
+      if (!config.filename) {
+        throw new Error('Cado#model: config.filename is required.');
+      }
       this.loki = new Loki(config.filename, _.defaults(config, {
         env: 'NODEJS',
         autosave: true,
@@ -47,6 +50,10 @@ export default class Cado {
     this.models[name] = SubModel;
 
     return SubModel;
+  }
+
+  static isCado() {
+    return true;
   }
 }
 

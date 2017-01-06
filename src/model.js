@@ -42,28 +42,29 @@ export default class Model {
   }
 
   static query(method, ...args) {
-    let records = this.collection[method](...args);
+    let docs;
+    const records = this.collection[method](...args);
     if (_.isArray(records)) {
-      records = records.map(record => new this(record, { _isNew: false }));
+      docs = records.map(record => new this(record, { _isNew: false }));
     } else if (records && _.isPlainObject(records)) {
-      records = new this(records, { _isNew: false });
+      docs = new this(records, { _isNew: false });
     }
-    return records;
+    return docs;
   }
 
-  static create(docs) {
-    if (_.isObject(docs)) docs = [docs];
+  static create(records) {
+    if (_.isObject(records)) records = [records];
 
-    docs = docs.map((doc) => {
-      const { error, value } = this.validate(doc);
+    records = records.map((record) => {
+      const { error, value } = this.validate(record);
       if (error) {
         throw new Error(_.first(error.details).message);
       }
       return value;
     });
 
-    if (docs.length === 1) docs = _.first(docs);
-    return this.query('insert', docs);
+    if (records.length === 1) records = _.first(records);
+    return this.query('insert', records);
   }
 
   static find(query) {
@@ -112,6 +113,10 @@ export default class Model {
 
   static clear() {
     this.query('clear');
+  }
+
+  static isCadoModel() {
+    return true;
   }
 
   get id() {
@@ -169,6 +174,7 @@ export default class Model {
   update(updateObject) {
     this.isAvailable('update');
 
+    updateObject = _.omit(updateObject, ['$loki', 'meta']);
     this.constructor.findAndUpdate({ $loki: this.$loki }, updateObject);
     this.refresh(updateObject);
 
