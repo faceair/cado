@@ -39,8 +39,6 @@ describe('Cado', () => {
         name: Joi.string(),
         phone: Joi.string(),
         address: Joi.string(),
-      }, {
-        autoSave: true,
       });
       assert.ok(User.isCadoModel);
     });
@@ -54,8 +52,6 @@ describe('Cado', () => {
             name: String,
             phone: String,
             address: String,
-          }, {
-            autoSave: true,
           });
           assert.ok(!User.isCadoModel);
         },
@@ -70,8 +66,6 @@ describe('Cado', () => {
         name: Joi.string(),
         phone: Joi.string(),
         address: Joi.string(),
-      }, {
-        autoSave: true,
       });
       assert.ok(User.isCadoModel);
       assert.throws(
@@ -80,8 +74,6 @@ describe('Cado', () => {
             name: Joi.string(),
             phone: Joi.string(),
             address: Joi.string(),
-          }, {
-            autoSave: true,
           });
           assert.ok(!DuplicateUser.isCadoModel);
         },
@@ -96,8 +88,6 @@ describe('Cado', () => {
             name: String,
             phone: String,
             address: String,
-          }, {
-            autoSave: true,
           });
           assert.ok(!User.isCadoModel);
         },
@@ -112,8 +102,6 @@ describe('Cado', () => {
         name: Joi.string(),
         phone: Joi.string(),
         address: Joi.string(),
-      }, {
-        autoSave: true,
       });
       assert.ok(User.isCadoModel);
       assert.ok(cado.model('user').isCadoModel);

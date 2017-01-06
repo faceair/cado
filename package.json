@@ -5,7 +5,8 @@
   "main": "lib/cado.js",
   "scripts": {
     "build": "babel src -d lib",
-    "test": "mocha --compilers js:babel-core/register test/*.test.js"
+    "test": "mocha --compilers js:babel-core/register test/*.test.js",
+    "coverage": "babel-node ./node_modules/.bin/isparta cover _mocha -- test/*.test.js"
   },
   "repository": {
     "type": "git",
@@ -30,6 +31,8 @@
     "eslint-plugin-import": "^2.1.0",
     "eslint-plugin-jsx-a11y": "^2.2.3",
     "eslint-plugin-react": "^6.6.0",
+    "isparta": "^4.0.0",
+    "istanbul": "^0.4.5",
     "mocha": "^3.2.0"
   }
 }
