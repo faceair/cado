@@ -73,8 +73,12 @@ export default class Model {
     return this.query('find', query);
   }
 
-  static findAll(...args) {
-    return this.find(...args);
+  static findAll(query) {
+    return this.find(query);
+  }
+
+  static findBySort(query, sort) {
+    return _.sortBy(this.find(query), sort);
   }
 
   static findOne(query) {
