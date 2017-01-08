@@ -90,7 +90,11 @@ export default class Model {
   }
 
   static findById(id) {
-    return this.query('get', id);
+    let instance = null;
+    if (_.isNumber(id)) {
+      instance = this.query('get', id);
+    }
+    return instance;
   }
 
   static findAndUpdate(filterObject, updateObject) {
