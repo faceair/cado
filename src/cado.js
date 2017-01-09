@@ -15,11 +15,10 @@ export default class Cado {
       if (!config.filename) {
         throw new Error('Cado#Connect: config.filename is required.');
       }
-      this.loki = new Loki(config.filename, _.defaults(config, {
+      this.loki = new Loki(config.filename, _.extend({
         env: 'NODEJS',
-        autosave: true,
         autoload: true,
-      }));
+      }, config));
       this.config = config;
     } else {
       throw new Error('Cado#Connect: cado has been already connected.');
