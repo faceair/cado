@@ -44,14 +44,14 @@ export default class Model {
   }
 
   static query(method, ...args) {
-    let docs;
+    let instances;
     const records = this.collection[method](...args);
     if (_.isArray(records)) {
-      docs = records.map(record => new this(record, { _isNew: false }));
+      instances = records.map(record => new this(record, { _isNew: false }));
     } else if (records && _.isPlainObject(records)) {
-      docs = new this(records, { _isNew: false });
+      instances = new this(records, { _isNew: false });
     }
-    return docs;
+    return instances;
   }
 
   static create(records) {
