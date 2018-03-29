@@ -1,5 +1,5 @@
-.vscode
-node_modules
-coverage
-test/test.db
-lib
+/.vscode
+/node_modules
+/.nyc_output
+/coverage
+/test/test.db
