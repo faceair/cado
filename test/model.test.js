@@ -1,6 +1,6 @@
-import assert from 'assert';
-import Joi from 'joi';
-import Cado from '../src/cado';
+const assert = require('assert')
+const Joi = require('joi')
+const Cado = require('../lib/cado')
 
 describe('Model', () => {
   const cado = new Cado({

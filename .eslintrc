@@ -4,9 +4,8 @@
     "node": true,
     "mocha": true
   },
-  "extends": "airbnb",
-  "rules": {
-    "no-param-reassign": "off",
-    "no-underscore-dangle": "off"
-	}
+  "parserOptions": {
+    "ecmaVersion": 6
+  },
+  "extends": "eslint:recommended"
 }

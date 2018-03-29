@@ -4,8 +4,7 @@
   "description": "Simple ORM for LokiJS.",
   "main": "lib/cado.js",
   "scripts": {
-    "build": "babel src -d lib",
-    "test": "mocha --compilers js:babel-core/register test/*.test.js",
+    "test": "mocha test/*.test.js",
     "coverage": "babel-node ./node_modules/.bin/isparta cover _mocha -- test/*.test.js"
   },
   "repository": {
@@ -19,20 +18,12 @@
   },
   "homepage": "https://github.com/faceair/cado",
   "dependencies": {
-    "joi": "^10.1.0",
+    "joi": "^13.1.2",
     "lodash": "^4.17.4",
-    "lokijs": "techfort/LokiJS#fe432460d7cd4824c407f618cc967a01eb25f10c"
+    "lokijs": "^1.5.3"
   },
   "devDependencies": {
-    "babel-cli": "^6.18.0",
-    "babel-preset-env": "^1.1.4",
-    "eslint": "^3.9.1",
-    "eslint-config-airbnb": "^13.0.0",
-    "eslint-plugin-import": "^2.1.0",
-    "eslint-plugin-jsx-a11y": "^2.2.3",
-    "eslint-plugin-react": "^6.6.0",
-    "isparta": "^4.0.0",
-    "istanbul": "^0.4.5",
-    "mocha": "^3.2.0"
+    "eslint": "^4.19.1",
+    "mocha": "^5.0.5"
   }
 }
